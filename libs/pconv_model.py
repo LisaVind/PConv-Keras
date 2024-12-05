@@ -8,10 +8,10 @@ from keras.models import Model
 from keras.models import load_model
 from keras.optimizers import Adam
 from keras.layers import Input, Conv2D, UpSampling2D, Dropout, LeakyReLU, BatchNormalization, Activation, Lambda
-from keras.layers.merge import Concatenate
+from keras.layers import Concatenate
 from keras.applications import VGG16
 from keras import backend as K
-from keras.utils.multi_gpu_utils import multi_gpu_model
+#from keras.utils.multi_gpu_utils import multi_gpu_model
 
 from libs.pconv_layer import PConv2D
 
@@ -46,6 +46,8 @@ class PConvUnet(object):
         self.mean = [0.485, 0.456, 0.406]
         self.std = [0.229, 0.224, 0.225]
 
+        strategy = tf.distribute.MirroredStrategy(devices=["/gpu:0"])  # Adjust devices as needed
+
         # Assertions
         assert self.img_rows >= 256, 'Height must be >256 pixels'
         assert self.img_cols >= 256, 'Width must be >256 pixels'
@@ -68,9 +70,12 @@ class PConvUnet(object):
             self.model, inputs_mask = self.build_pconv_unet()
             self.compile_pconv_unet(self.model, inputs_mask)            
         else:
-            with tf.device("/cpu:0"):
+            #with tf.device("/cpu:0"):
+            with strategy.scope():
                 self.model, inputs_mask = self.build_pconv_unet()
-            self.model = multi_gpu_model(self.model, gpus=self.gpus)
+            #self.model = multi_gpu_model(self.model, gpus=self.gpus)
+            #self.model = multi_gpu_model(self.model, gpus=self.gpus)
+            
             self.compile_pconv_unet(self.model, inputs_mask)
         
     def build_vgg(self, weights="imagenet"):
